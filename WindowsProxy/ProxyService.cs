@@ -350,7 +350,9 @@ namespace WindowsProxy
 			{
 				return 0;
 			}
-			nint ptr = Marshal.StringToCoTaskMemAuto(_idn.GetAscii(managedString));
+
+			var str = managedString is @"" ? string.Empty : _idn.GetAscii(managedString);
+			nint ptr = Marshal.StringToCoTaskMemAuto(str);
 			_needToFree.Enqueue(ptr);
 			return ptr;
 		}
