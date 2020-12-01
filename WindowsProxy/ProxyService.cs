@@ -9,7 +9,7 @@ using static WindowsProxy.Enums.INTERNET_PER_CONN_OptionEnum;
 
 namespace WindowsProxy
 {
-	public class SystemProxy : IDisposable
+	public class ProxyService : IDisposable
 	{
 		private enum ProxyType : uint
 		{
@@ -64,8 +64,7 @@ namespace WindowsProxy
 
 			var perOption = new INTERNET_PER_CONN_OPTION[optionCount];
 			var optSize = Marshal.SizeOf(typeof(INTERNET_PER_CONN_OPTION));
-			nint optionsPtr = Marshal.AllocCoTaskMem(perOption.Length * optSize);
-			_needToFree.Enqueue(optionsPtr);
+			var optionsPtr = Alloc(perOption.Length * optSize);
 
 			switch (type)
 			{
@@ -129,8 +128,7 @@ namespace WindowsProxy
 
 			var dwLen = (uint)Marshal.SizeOf(typeof(INTERNET_PER_CONN_OPTION_LIST));
 
-			nint optionsPtr = Marshal.AllocCoTaskMem((int)_options.Size);
-			_needToFree.Enqueue(optionsPtr);
+			var optionsPtr = Alloc((int)_options.Size);
 			Marshal.StructureToPtr(_options, optionsPtr, false);
 
 			if (!NativeMethods.InternetQueryOption(0, INTERNET_OPTION_PER_CONNECTION_OPTION, optionsPtr, ref dwLen))
@@ -142,10 +140,10 @@ namespace WindowsProxy
 
 			var size = Marshal.SizeOf(typeof(INTERNET_PER_CONN_OPTION));
 			var perOptions = new INTERNET_PER_CONN_OPTION[4];
-			perOptions[0] = Marshal.PtrToStructure<INTERNET_PER_CONN_OPTION>(result.pOptions);
-			perOptions[1] = Marshal.PtrToStructure<INTERNET_PER_CONN_OPTION>(result.pOptions + size);
-			perOptions[2] = Marshal.PtrToStructure<INTERNET_PER_CONN_OPTION>(result.pOptions + 2 * size);
-			perOptions[3] = Marshal.PtrToStructure<INTERNET_PER_CONN_OPTION>(result.pOptions + 3 * size);
+			for (var i = 0; i < perOptions.Length; ++i)
+			{
+				perOptions[i] = Marshal.PtrToStructure<INTERNET_PER_CONN_OPTION>(result.pOptions + i * size);
+			}
 
 			Debug.WriteLine(perOptions[0].Value.dwValue);
 			Debug.WriteLine(Marshal.PtrToStringAnsi(perOptions[1].Value.pszValue));
@@ -187,6 +185,15 @@ namespace WindowsProxy
 			return entryNames;
 		}
 
+		#region Alloc
+
+		private nint Alloc(int size)
+		{
+			var ptr = Marshal.AllocCoTaskMem(size);
+			_needToFree.Enqueue(ptr);
+			return ptr;
+		}
+
 		private nint IntPtrFromString(string? managedString)
 		{
 			if (managedString is null)
@@ -198,6 +205,8 @@ namespace WindowsProxy
 			return ptr;
 		}
 
+		#endregion
+
 		#region Dispose
 
 		private volatile bool _disposedValue;
@@ -208,11 +217,8 @@ namespace WindowsProxy
 			{
 				if (disposing)
 				{
-					// TODO: 释放托管状态(托管对象)
-				}
 
-				// TODO: 释放未托管的资源(未托管的对象)并替代终结器
-				// TODO: 将大型字段设置为 null
+				}
 
 				while (_needToFree.Count > 0)
 				{
@@ -224,7 +230,7 @@ namespace WindowsProxy
 			}
 		}
 
-		~SystemProxy()
+		~ProxyService()
 		{
 			Dispose(false);
 		}

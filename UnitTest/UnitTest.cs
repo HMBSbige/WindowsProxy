@@ -10,7 +10,7 @@ namespace UnitTest
 		[TestMethod]
 		public void GetRasEntryNamesTest()
 		{
-			var names = SystemProxy.GetRasEntryNames();
+			var names = ProxyService.GetRasEntryNames();
 			foreach (var name in names)
 			{
 				Console.WriteLine(name);
@@ -20,7 +20,7 @@ namespace UnitTest
 		[TestMethod]
 		public void QueryTest()
 		{
-			using var service = new SystemProxy();
+			using var service = new ProxyService();
 			service.Query();
 		}
 	}
