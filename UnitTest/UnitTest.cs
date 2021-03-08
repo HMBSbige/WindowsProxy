@@ -48,14 +48,15 @@ namespace UnitTest
 		}
 
 		[TestMethod]
-		public void PacTest()
+		[DataRow(@"http://中文.cn/?12345678901234?567890123456_4184184&78901234567456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")]
+		public void PacTest(string url)
 		{
 			using var service = new ProxyService
 			{
-				AutoConfigUrl = @"中文测试114514"
+				AutoConfigUrl = url
 			};
-			var idn = new IdnMapping();
 			var old = service.Query();
+			var idn = new IdnMapping();
 
 			try
 			{
@@ -65,7 +66,7 @@ namespace UnitTest
 				Assert.IsFalse(status.IsProxy);
 				Assert.IsTrue(status.IsAutoProxyUrl);
 				Assert.IsFalse(status.IsAutoDetect);
-				Assert.AreEqual(idn.GetAscii(service.AutoConfigUrl), status.AutoConfigUrl);
+				Assert.AreEqual(service.AutoConfigUrl.Replace(@"中文.cn", idn.GetAscii(@"中文.cn")), status.AutoConfigUrl);
 			}
 			finally
 			{

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Runtime.InteropServices;
 using WindowsProxy.Enums;
 using WindowsProxy.Models;
@@ -39,7 +38,6 @@ namespace WindowsProxy
 		};
 
 		private readonly Queue<nint> _needToFree = new();
-		private readonly IdnMapping _idn = new();
 
 		public string Server { get; set; } = string.Empty;
 
@@ -335,6 +333,30 @@ namespace WindowsProxy
 			return res;
 		}
 
+		#region Utils
+
+		private static string GetIdnAsciiString(string str)
+		{
+			try
+			{
+				var uri = new Uri(str);
+				var query = uri.Query;
+				var host = uri.Host;
+				if (!string.IsNullOrEmpty(host))
+				{
+					var result = uri.GetLeftPart(UriPartial.Path).Replace(host, uri.IdnHost) + query;
+					return result;
+				}
+			}
+			catch (UriFormatException)
+			{
+			}
+
+			return str;
+		}
+
+		#endregion
+
 		#region Alloc
 
 		private nint Alloc(int size)
@@ -351,7 +373,7 @@ namespace WindowsProxy
 				return 0;
 			}
 
-			var str = managedString is @"" ? string.Empty : _idn.GetAscii(managedString);
+			var str = managedString is @"" ? string.Empty : GetIdnAsciiString(managedString);
 			nint ptr = Marshal.StringToCoTaskMemAuto(str);
 			_needToFree.Enqueue(ptr);
 			return ptr;

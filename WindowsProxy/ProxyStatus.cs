@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using WindowsProxy.Models;
@@ -17,7 +16,7 @@ namespace WindowsProxy
 		public string? ProxyBypass { get; private set; }
 		public string? AutoConfigUrl { get; private set; }
 
-		internal void Parse(IEnumerable<INTERNET_PER_CONN_OPTION> list)
+		internal void Parse(INTERNET_PER_CONN_OPTION[] list)
 		{
 			var flagList = list.First(l => l.dwOption == INTERNET_PER_CONN_FLAGS_UI);
 			var flag = flagList.Value.dwValue;
