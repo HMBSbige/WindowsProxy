@@ -6,7 +6,10 @@ using WindowsProxy;
 namespace UnitTest
 {
 	[TestClass]
-	public class UnitTest
+#if NET5_0_OR_GREATER
+	[System.Runtime.Versioning.SupportedOSPlatform(@"windows")]
+#endif
+	public class WindowsProxyServiceTest
 	{
 		[TestMethod]
 		public void GetRasEntryNamesTest()

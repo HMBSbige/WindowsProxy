@@ -5,7 +5,10 @@ jobs:
 
   test:
     name: Test
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
     - name: Checkout code
@@ -21,9 +24,17 @@ jobs:
       with:
         dotnet-version: 3.1.x
 
-    - name: Test
+    - name: Test Windows
+      if: ${{ matrix.os == 'windows-latest' }}
       shell: pwsh
       run: dotnet test --logger:"console;verbosity=detailed" -c Release
+
+    - name: Test Unix
+      if: ${{ matrix.os != 'windows-latest' }}
+      shell: pwsh
+      run: |
+        dotnet test --logger:"console;verbosity=detailed" -c Release --filter ClassName!~Windows -f net5.0
+        dotnet test --logger:"console;verbosity=detailed" -c Release --filter ClassName!~Windows -f netcoreapp3.1
 
   build:
     name: Push nuget packages if a new tag is pushed

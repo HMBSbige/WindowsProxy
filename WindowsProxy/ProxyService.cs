@@ -10,6 +10,9 @@ using static WindowsProxy.NativeMethods;
 
 namespace WindowsProxy
 {
+#if NET5_0_OR_GREATER
+	[System.Runtime.Versioning.SupportedOSPlatform(@"windows")]
+#endif
 	public sealed class ProxyService : IDisposable
 	{
 		public static readonly string[] LanIp =
