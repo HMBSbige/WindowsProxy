@@ -7,4 +7,4 @@ NuGet.org | [![NuGet.org](https://img.shields.io/nuget/v/WindowsProxy.svg)](http
 
 # Usage
 
-[Please see unit test](UnitTest/UnitTest.cs)
+[Please see unit test](UnitTest)
