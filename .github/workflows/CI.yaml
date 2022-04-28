@@ -1,8 +1,15 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+      - develop
+    tags:
+      - "*"
+  pull_request:
+  workflow_dispatch:
 
 jobs:
-
   test:
     name: Test
     runs-on: ${{ matrix.os }}
@@ -11,33 +18,30 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup .NET 5.0
-      uses: actions/setup-dotnet@v2
-      with:
-        dotnet-version: 5.0.x
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: |
+            3.1.x
+            6.0.x
 
-    - name: Setup .NET Core 3.1
-      uses: actions/setup-dotnet@v2
-      with:
-        dotnet-version: 3.1.x
+      - name: Test Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: dotnet test --logger:"console;verbosity=detailed" -c Release
 
-    - name: Test Windows
-      if: ${{ matrix.os == 'windows-latest' }}
-      shell: pwsh
-      run: dotnet test --logger:"console;verbosity=detailed" -c Release
-
-    - name: Test Unix
-      if: ${{ matrix.os != 'windows-latest' }}
-      shell: pwsh
-      run: |
-        dotnet test --logger:"console;verbosity=detailed" -c Release --filter ClassName!~Windows -f net5.0
-        dotnet test --logger:"console;verbosity=detailed" -c Release --filter ClassName!~Windows -f netcoreapp3.1
+      - name: Test Unix
+        if: ${{ matrix.os != 'windows-latest' }}
+        shell: pwsh
+        run: |
+          dotnet test --logger:"console;verbosity=detailed" -c Release --filter ClassName!~Windows -f net6.0
+          dotnet test --logger:"console;verbosity=detailed" -c Release --filter ClassName!~Windows -f netcoreapp3.1
 
   build:
-    name: Push nuget packages if a new tag is pushed
+    name: Build
     needs: test
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
@@ -45,20 +49,42 @@ jobs:
       ProjectName: WindowsProxy
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v2
-      with:
-        dotnet-version: 5.0.x
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: 6.0.x
 
-    - name: Build
-      shell: pwsh
-      run: dotnet build -c Release
+      - name: Build
+        shell: pwsh
+        run: dotnet build -c Release ${{ env.ProjectName }}\${{ env.ProjectName }}.csproj
 
-    - name: Push nuget packages
-      shell: pwsh
-      run: |
-        dotnet nuget push ${{ env.ProjectName }}\bin\Release\*.nupkg -s https://nuget.pkg.github.com/HMBSbige -k ${{ secrets.GITHUB_TOKEN }} --skip-duplicate
-        dotnet nuget push ${{ env.ProjectName }}\bin\Release\*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NuGetAPIKey }} --skip-duplicate
+      - name: Push nuget packages
+        shell: pwsh
+        run: |
+          dotnet nuget push ${{ env.ProjectName }}\bin\Release\*.nupkg -s https://nuget.pkg.github.com/HMBSbige -k ${{ secrets.GITHUB_TOKEN }} --skip-duplicate
+          dotnet nuget push ${{ env.ProjectName }}\bin\Release\*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NuGetAPIKey }} --skip-duplicate
+
+  release:
+    name: Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+
+      - name: Changelog
+        uses: glennawatson/ChangeLog@v1
+        id: changelog
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{ steps.changelog.outputs.commitLog }}
+          draft: false
+          prerelease: false
