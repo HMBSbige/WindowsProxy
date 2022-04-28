@@ -1,19 +1,18 @@
 using System.Runtime.InteropServices;
 
-namespace WindowsProxy.Models
+namespace WindowsProxy.Models;
+
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+internal struct INTERNET_PER_CONN_OPTION_LIST
 {
-	[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-	internal struct INTERNET_PER_CONN_OPTION_LIST
-	{
-		public uint Size;
+	public uint Size;
 
-		// The connection to be set. NULL means LAN.
-		public nint Connection;
+	// The connection to be set. NULL means LAN.
+	public nint Connection;
 
-		public uint OptionCount;
-		public uint OptionError;
+	public uint OptionCount;
+	public uint OptionError;
 
-		// List of INTERNET_PER_CONN_OPTION.
-		public nint pOptions;
-	}
+	// List of INTERNET_PER_CONN_OPTION.
+	public nint pOptions;
 }

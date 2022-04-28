@@ -1,110 +1,108 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.Globalization;
 using WindowsProxy;
 
-namespace UnitTest
-{
-	[TestClass]
-#if NET5_0_OR_GREATER
-	[System.Runtime.Versioning.SupportedOSPlatform(@"windows")]
+namespace UnitTest;
+
+[TestClass]
+#if NET6_0_OR_GREATER
+[System.Runtime.Versioning.SupportedOSPlatform(@"windows")]
 #endif
-	public class WindowsProxyServiceTest
+public class WindowsProxyServiceTest
+{
+	[TestMethod]
+	public void GetRasEntryNamesTest()
 	{
-		[TestMethod]
-		public void GetRasEntryNamesTest()
+		string[] names = ProxyService.GetRasEntryNames();
+		foreach (string name in names)
 		{
-			var names = ProxyService.GetRasEntryNames();
-			foreach (var name in names)
-			{
-				Console.WriteLine(name);
-			}
+			Console.WriteLine(name);
 		}
+	}
 
-		[TestMethod]
-		public void QueryTest()
+	[TestMethod]
+	public void QueryTest()
+	{
+		using ProxyService service = new();
+		ProxyStatus status = service.Query();
+		Console.WriteLine(status);
+	}
+
+	[TestMethod]
+	public void DirectTest()
+	{
+		using ProxyService service = new();
+		ProxyStatus old = service.Query();
+		try
 		{
-			using var service = new ProxyService();
-			var status = service.Query();
-			Console.WriteLine(status);
+			Assert.IsTrue(service.Direct());
+			ProxyStatus status = service.Query();
+			Assert.IsTrue(status.IsDirect);
+			Assert.IsFalse(status.IsProxy);
+			Assert.IsFalse(status.IsAutoProxyUrl);
+			Assert.IsTrue(status.IsAutoDetect);
 		}
-
-		[TestMethod]
-		public void DirectTest()
+		finally
 		{
-			using var service = new ProxyService();
-			var old = service.Query();
-			try
-			{
-				Assert.IsTrue(service.Direct());
-				var status = service.Query();
-				Assert.IsTrue(status.IsDirect);
-				Assert.IsFalse(status.IsProxy);
-				Assert.IsFalse(status.IsAutoProxyUrl);
-				Assert.IsTrue(status.IsAutoDetect);
-			}
-			finally
-			{
-				Assert.IsTrue(service.Set(old));
-				Assert.AreEqual(old, service.Query());
-			}
+			Assert.IsTrue(service.Set(old));
+			Assert.AreEqual(old, service.Query());
 		}
+	}
 
-		[TestMethod]
-		[DataRow(@"http://中文.cn/?12345678901234?567890123456_4184184&78901234567456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")]
-		public void PacTest(string url)
+	[TestMethod]
+	[DataRow(@"http://中文.cn/?12345678901234?567890123456_4184184&78901234567456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")]
+	public void PacTest(string url)
+	{
+		using ProxyService service = new()
 		{
-			using var service = new ProxyService
-			{
-				AutoConfigUrl = url
-			};
-			var old = service.Query();
-			var idn = new IdnMapping();
+			AutoConfigUrl = url
+		};
+		ProxyStatus old = service.Query();
+		IdnMapping idn = new();
 
-			try
-			{
-				Assert.IsTrue(service.Pac());
-				var status = service.Query();
-				Assert.IsTrue(status.IsDirect);
-				Assert.IsFalse(status.IsProxy);
-				Assert.IsTrue(status.IsAutoProxyUrl);
-				Assert.IsFalse(status.IsAutoDetect);
-				Assert.AreEqual(service.AutoConfigUrl.Replace(@"中文.cn", idn.GetAscii(@"中文.cn")), status.AutoConfigUrl);
-			}
-			finally
-			{
-				Assert.IsTrue(service.Set(old));
-				Assert.AreEqual(old, service.Query());
-			}
+		try
+		{
+			Assert.IsTrue(service.Pac());
+			ProxyStatus status = service.Query();
+			Assert.IsTrue(status.IsDirect);
+			Assert.IsFalse(status.IsProxy);
+			Assert.IsTrue(status.IsAutoProxyUrl);
+			Assert.IsFalse(status.IsAutoDetect);
+			Assert.AreEqual(service.AutoConfigUrl.Replace(@"中文.cn", idn.GetAscii(@"中文.cn")), status.AutoConfigUrl);
 		}
-
-		[TestMethod]
-		public void GlobalTest()
+		finally
 		{
-			using var service = new ProxyService
-			{
-				Server = @"中文测试1919810",
-				Bypass = string.Join(@";", ProxyService.LanIp)
-			};
-			var idn = new IdnMapping();
-			var old = service.Query();
+			Assert.IsTrue(service.Set(old));
+			Assert.AreEqual(old, service.Query());
+		}
+	}
 
-			try
-			{
-				Assert.IsTrue(service.Global());
-				var status = service.Query();
-				Assert.IsTrue(status.IsDirect);
-				Assert.IsTrue(status.IsProxy);
-				Assert.IsFalse(status.IsAutoProxyUrl);
-				Assert.IsFalse(status.IsAutoDetect);
-				Assert.AreEqual(idn.GetAscii(service.Server), status.ProxyServer);
-				Assert.AreEqual(idn.GetAscii(service.Bypass), status.ProxyBypass);
-			}
-			finally
-			{
-				Assert.IsTrue(service.Set(old));
-				Assert.AreEqual(old, service.Query());
-			}
+	[TestMethod]
+	public void GlobalTest()
+	{
+		using ProxyService service = new()
+		{
+			Server = @"中文测试1919810",
+			Bypass = string.Join(@";", ProxyService.LanIp)
+		};
+		IdnMapping idn = new();
+		ProxyStatus old = service.Query();
+
+		try
+		{
+			Assert.IsTrue(service.Global());
+			ProxyStatus status = service.Query();
+			Assert.IsTrue(status.IsDirect);
+			Assert.IsTrue(status.IsProxy);
+			Assert.IsFalse(status.IsAutoProxyUrl);
+			Assert.IsFalse(status.IsAutoDetect);
+			Assert.AreEqual(idn.GetAscii(service.Server), status.ProxyServer);
+			Assert.AreEqual(idn.GetAscii(service.Bypass), status.ProxyBypass);
+		}
+		finally
+		{
+			Assert.IsTrue(service.Set(old));
+			Assert.AreEqual(old, service.Query());
 		}
 	}
 }

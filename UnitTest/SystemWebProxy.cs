@@ -1,16 +1,16 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Net;
 using WindowsProxy;
 
-namespace UnitTest
+namespace UnitTest;
+
+[TestClass]
+public class SystemWebProxyTest
 {
-	[TestClass]
-	public class SystemWebProxyTest
+	[TestMethod]
+	public void GetCurrentProxyTest()
 	{
-		[TestMethod]
-		public void GetCurrentProxyTest()
-		{
-			var proxy = SystemWebProxy.GetCurrentProxy();
-			Assert.IsNotNull(proxy);
-		}
+		IWebProxy proxy = SystemWebProxy.GetCurrentProxy();
+		Assert.IsNotNull(proxy);
 	}
 }
